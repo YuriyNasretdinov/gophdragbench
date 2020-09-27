@@ -57,7 +57,7 @@ func canSurviveDragon(s State) bool {
 		dragonHP -= AttackDmgAvg
 	}
 
-	println("dragon hp: ", dragonHP, ", my hp: ", myHP)
+	// println("dragon hp: ", dragonHP, ", my hp: ", myHP)
 
 	return myHP > 0 && dragonHP < 0
 }
@@ -68,13 +68,13 @@ func fightDragon(s State) CardType {
 			return CardHeal
 		}
 
-		println("retreated, dragon hp: ", s.Creep.HP, ", my hp: ", s.Avatar.HP)
+		// println("retreated, dragon hp: ", s.Creep.HP, ", my hp: ", s.Avatar.HP)
 
 		return CardRetreat
 	}
 
 	if s.Avatar.HP <= 25 && s.Can(CardHeal) {
-		println("Before heal:", s.Avatar.HP)
+		// println("Before heal:", s.Avatar.HP)
 		return CardHeal
 	}
 
@@ -114,16 +114,16 @@ func fightMummy(s State) CardType {
 }
 
 func Hero(s State) CardType {
-	println("#", s.Turn, "HP: ", s.Avatar.HP)
+	// println("#", s.Turn, "HP: ", s.Avatar.HP)
 
 	if s.Creep.Type == CreepCheepy {
 		if s.Avatar.HP <= 25 && s.Can(CardHeal) {
-			println("Before heal:", s.Avatar.HP)
+			// println("Before heal:", s.Avatar.HP)
 			return CardHeal
 		}
 
 		if s.Avatar.HP <= 20 && s.Can(CardRest) {
-			println("Before rest:", s.Avatar.HP)
+			// println("Before rest:", s.Avatar.HP)
 			return CardRest
 		}
 
