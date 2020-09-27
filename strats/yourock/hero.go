@@ -125,7 +125,12 @@ func Hero(s State) CardType {
 		return fightDragon(s)
 	}
 
-	if s.Avatar.HP <= 20 && s.Can(CardHeal) {
+	minHealHP := 10
+	if s.Creep.Damage.High() <= 4 {
+		minHealHP = 25
+	}
+
+	if s.Avatar.HP <= minHealHP && s.Can(CardHeal) {
 		return CardHeal
 	}
 
@@ -139,6 +144,10 @@ func Hero(s State) CardType {
 
 	if s.Creep.Damage.High() >= 5 && s.Can(CardPowerAttack) {
 		return CardPowerAttack
+	}
+
+	if s.Creep.HP == 3 && s.Avatar.MP >= MagicArrowMP+HealMP && s.Can(CardMagicArrow) {
+		return CardMagicArrow
 	}
 
 	return CardAttack
