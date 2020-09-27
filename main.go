@@ -20,9 +20,10 @@ var (
 	iterations  = flag.Int("iterations", 1000, "how many iterations to do for every strategy")
 	filterRegex = flag.String("filter-regex", "", "regexp for strategy names to leave")
 	debug       = flag.Bool("debug", false, "enable debug messages")
+	samples     = flag.Bool("samples", false, "show best and worst matches")
 )
 
-func runsim(chooseCardFn func(game.State) game.CardType) (score int, dragonDefeated bool) {
+func runsim(chooseCardFn func(game.State) game.CardType) (log []simstep.Action, score int, dragonDefeated bool) {
 	conf := &sim.Config{
 		AvatarHP: 40,
 		AvatarMP: 20,
@@ -46,10 +47,10 @@ func runsim(chooseCardFn func(game.State) game.CardType) (score int, dragonDefea
 	}
 
 	if victory {
-		return score, dragonDefeated
+		return actions, score, dragonDefeated
 	}
 
-	return 0, false
+	return nil, 0, false
 }
 
 func tryDisableDebugMessages() {
@@ -63,11 +64,12 @@ func tryDisableDebugMessages() {
 // computeAvgScore computes average for N rounds of best-of-three
 // (it does three launches and takes the best score of three launches
 //  and then returns the average of those scores)
-func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg float64, meanerr float64, winratio float64, dragonDefeatRatio float64) {
+func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg, meanerr, winratio, dragonDefeatRatio float64, worstActions, bestActions []simstep.Action, minScore, maxScore int) {
 	sum := 0.0
 	wins := 0
 	dragonDefeats := 0
 	total := 0
+	minScore = 100000
 
 	bests := make([]int, 0, *iterations)
 
@@ -75,7 +77,7 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg float64, 
 		best := 0
 
 		for j := 0; j < 3; j++ {
-			res, dragonDefeated := runsim(chooseCardFn)
+			actions, res, dragonDefeated := runsim(chooseCardFn)
 			if res > best {
 				best = res
 			}
@@ -84,6 +86,14 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg float64, 
 			}
 			if dragonDefeated {
 				dragonDefeats++
+			}
+			if res > maxScore {
+				maxScore = res
+				bestActions = actions
+			}
+			if res > 0 && res < minScore {
+				minScore = res
+				worstActions = actions
 			}
 			total++
 		}
@@ -104,7 +114,18 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg float64, 
 	// if N is large enough we can just say that meanerr = sqrt( (x - avg(x))^2 ) / N
 	meanerr = math.Sqrt(sumsquares) / float64(*iterations)
 
-	return avg, meanerr, float64(wins) / float64(total), float64(dragonDefeats) / float64(total)
+	return avg, meanerr, float64(wins) / float64(total), float64(dragonDefeats) / float64(total), worstActions, bestActions, minScore, maxScore
+}
+
+func printAction(act simstep.Action) {
+	switch act := act.(type) {
+	case simstep.Log:
+		fmt.Printf("  %s\n", act.Message)
+	case simstep.GreenLog:
+		fmt.Printf("  \033[1;32m%s\033[0m\n", act.Message)
+	case simstep.RedLog:
+		fmt.Printf("  \033[1;31m%s\033[0m\n", act.Message)
+	}
 }
 
 func main() {
@@ -138,9 +159,21 @@ func main() {
 			fmt.Printf("%s", strings.Repeat(" ", maxLen-len(s.name)))
 		}
 		start := time.Now()
-		avg, meanerr, winratio, dragonRatio := computeAvgScore(s.cb)
+		avg, meanerr, winratio, dragonRatio, worst, best, min, max := computeAvgScore(s.cb)
 		avgTime := time.Since(start) / time.Duration(*iterations)
 		avgStr := fmt.Sprintf("%.2f", avg)
 		fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime)
+
+		if *samples {
+			fmt.Printf("Worst game (%d points):\n", min)
+			for _, a := range worst {
+				printAction(a)
+			}
+
+			fmt.Printf("\nBest game (%d points):\n", max)
+			for _, a := range best {
+				printAction(a)
+			}
+		}
 	}
 }
