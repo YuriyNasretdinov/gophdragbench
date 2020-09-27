@@ -57,8 +57,6 @@ func canSurviveDragon(s State) bool {
 		dragonHP -= AttackDmgAvg
 	}
 
-	// println("dragon hp: ", dragonHP, ", my hp: ", myHP)
-
 	return myHP > 0 && dragonHP < 0
 }
 
@@ -68,13 +66,10 @@ func fightDragon(s State) CardType {
 			return CardHeal
 		}
 
-		// println("retreated, dragon hp: ", s.Creep.HP, ", my hp: ", s.Avatar.HP)
-
 		return CardRetreat
 	}
 
 	if s.Avatar.HP <= 25 && s.Can(CardHeal) {
-		// println("Before heal:", s.Avatar.HP)
 		return CardHeal
 	}
 
@@ -95,7 +90,7 @@ func fightDragon(s State) CardType {
 
 func fightMummy(s State) CardType {
 	if s.Creep.IsFull() {
-		if s.Avatar.MP >= 2*FireboltMP+HealMP && s.Deck[CardFirebolt].Count >= 2 {
+		if s.Avatar.MP >= 2*FireboltMP && s.Deck[CardFirebolt].Count >= 2 {
 			return CardFirebolt
 		}
 
@@ -106,7 +101,7 @@ func fightMummy(s State) CardType {
 		return CardAttack
 	} else if s.Creep.HP <= 3 && s.Avatar.MP >= HealMP+MagicArrowMP {
 		return CardMagicArrow
-	} else if s.Avatar.MP >= FireboltMP+HealMP && s.Can(CardFirebolt) {
+	} else if s.Can(CardFirebolt) {
 		return CardFirebolt
 	}
 
@@ -114,16 +109,12 @@ func fightMummy(s State) CardType {
 }
 
 func Hero(s State) CardType {
-	// println("#", s.Turn, "HP: ", s.Avatar.HP)
-
 	if s.Creep.Type == CreepCheepy {
 		if s.Avatar.HP <= 25 && s.Can(CardHeal) {
-			// println("Before heal:", s.Avatar.HP)
 			return CardHeal
 		}
 
 		if s.Avatar.HP <= 20 && s.Can(CardRest) {
-			// println("Before rest:", s.Avatar.HP)
 			return CardRest
 		}
 
@@ -142,24 +133,12 @@ func Hero(s State) CardType {
 		return fightMummy(s)
 	}
 
-	if s.Turn%2 == 0 && s.Creep.Damage.High() >= 4 && s.Creep.Type != CreepFairy && !s.Creep.IsStunned() && s.Can(CardParry) {
-		return CardParry
-	}
-
-	if s.Turn%2 == 1 && !s.Creep.IsStunned() && s.Can(CardStun) {
-		return CardStun
-	}
-
-	if s.Round >= 8 && s.Avatar.MP >= FireboltMP+HealMP && s.Can(CardFirebolt) {
+	if s.Round >= 9 && s.Avatar.MP >= FireboltMP+HealMP && s.Can(CardFirebolt) {
 		return CardFirebolt
 	}
 
-	if s.Creep.Damage.High() >= 4 && s.Can(CardPowerAttack) {
+	if s.Creep.Damage.High() >= 5 && s.Can(CardPowerAttack) {
 		return CardPowerAttack
-	}
-
-	if s.Creep.Type == CreepFairy && s.Creep.HP%3 == 0 && s.Avatar.MP >= MagicArrowMP+HealMP {
-		return CardMagicArrow
 	}
 
 	return CardAttack
