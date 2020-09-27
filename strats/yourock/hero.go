@@ -110,11 +110,11 @@ func fightMummy(s State) CardType {
 
 func Hero(s State) CardType {
 	if s.Creep.Type == CreepCheepy {
-		if s.Avatar.HP <= 25 && s.Can(CardHeal) {
+		if s.Creep.IsFull() && s.Avatar.HP <= 25 && s.Can(CardHeal) {
 			return CardHeal
 		}
 
-		if s.Avatar.HP <= 20 && s.Can(CardRest) {
+		if s.Creep.IsFull() && s.Avatar.HP <= 20 && s.Can(CardRest) {
 			return CardRest
 		}
 
