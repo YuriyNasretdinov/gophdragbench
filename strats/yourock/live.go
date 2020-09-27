@@ -4,6 +4,52 @@ import . "github.com/quasilyte/gophers-and-dragons/game"
 
 const DragonAttack = 5
 
+func Live(s State) CardType {
+	if s.Creep.Type == CreepCheepy {
+		return CardAttack
+	}
+
+	if s.Avatar.HP <= 7 {
+		return CardRetreat
+	}
+
+	if s.Avatar.HP <= 20 {
+		if s.Can(CardHeal) {
+			return CardHeal
+		}
+	}
+
+	if s.Creep.Type == CreepDragon {
+		return CardRetreat
+	}
+
+	if s.Creep.Type != CreepFairy && !s.Creep.IsStunned() && s.Can(CardParry) {
+		return CardParry
+	}
+
+	if !s.Creep.IsStunned() && s.Can(CardStun) {
+		return CardStun
+	}
+
+	if s.Can(CardPowerAttack) {
+		return CardPowerAttack
+	}
+
+	if s.Creep.Type == CreepDragon {
+		return CardAttack
+	}
+
+	if s.Creep.Type == CreepMummy && s.Avatar.MP >= FireboltMP+HealMP && s.Can(CardFirebolt) {
+		return CardFirebolt
+	}
+
+	if s.Creep.Type == CreepFairy && s.Avatar.MP >= MagicArrowMP+HealMP && s.Can(CardMagicArrow) {
+		return CardMagicArrow
+	}
+
+	return CardAttack
+}
+
 func Live2(s State) CardType {
 
 	if s.Creep.Type == CreepCheepy {
