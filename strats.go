@@ -14,6 +14,7 @@ type strat struct {
 
 var strats = []strat{
 	{"yourock/hero", yourock.Hero},
+	{"yourock/smart", yourock.Smart},
 	{"yourock/live-coward", yourock.Live},
 	{"yourock/live2", yourock.Live2},
 	{"alik/WiningTactic", alik.WiningTactic},

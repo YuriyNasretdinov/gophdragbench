@@ -5,6 +5,7 @@ import . "github.com/quasilyte/gophers-and-dragons/game"
 const MagicArrowMP = 1
 const FireboltMP = 3
 const HealMP = 4
+const RestMP = 2
 
 const HealAvg = 12.5
 
@@ -12,7 +13,7 @@ const DragonDmgAvg = 5.5
 const PowerAttackDmgAvg = 4.5
 const AttackDmgAvg = 3
 
-func canSurviveDragon(s State) bool {
+func heroCanSurviveDragon(s State) bool {
 	dragonHP := float64(s.Creep.HP)
 	myHP := float64(s.Avatar.HP)
 
@@ -61,7 +62,7 @@ func canSurviveDragon(s State) bool {
 }
 
 func fightDragon(s State) CardType {
-	if s.Creep.IsFull() && !canSurviveDragon(s) {
+	if s.Creep.IsFull() && !heroCanSurviveDragon(s) {
 		if s.Can(CardHeal) {
 			return CardHeal
 		}
