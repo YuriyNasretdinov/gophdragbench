@@ -21,13 +21,19 @@ var (
 	filterRegex = flag.String("filter-regex", "", "regexp for strategy names to leave")
 	debug       = flag.Bool("debug", false, "enable debug messages")
 	samples     = flag.Bool("samples", false, "show best and worst matches")
+	startSeed   = flag.Int64("rand-seed", time.Now().UnixNano(), "initial random seed")
+
+	currentSeed int64
 )
 
 func runsim(chooseCardFn func(game.State) game.CardType) (log []simstep.Action, score int, dragonDefeated bool) {
+	currentSeed += rand.Int63()
+
 	conf := &sim.Config{
 		AvatarHP: 40,
 		AvatarMP: 20,
 		Rounds:   10,
+		Seed:     currentSeed,
 	}
 
 	victory := false
@@ -136,7 +142,8 @@ func main() {
 		filter = regexp.MustCompile(*filterRegex)
 	}
 
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(*startSeed)
+	currentSeed = *startSeed
 
 	if !*debug {
 		tryDisableDebugMessages()
