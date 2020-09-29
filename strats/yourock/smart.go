@@ -183,7 +183,7 @@ func smartFightDragon(s state) CardType {
 	}
 
 	// +2 average score, +3% dragon win rate
-	if s.hp <= 25 && s.can(CardHeal) {
+	if s.hp <= 27 && s.can(CardHeal) {
 		return CardHeal
 	}
 
