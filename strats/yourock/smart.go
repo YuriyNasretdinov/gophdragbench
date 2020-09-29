@@ -1,8 +1,15 @@
 package yourock
 
 import (
+	"math/rand"
+	"time"
+
 	. "github.com/quasilyte/gophers-and-dragons/game"
 )
+
+type smartLogic struct {
+	r *rand.Rand
+}
 
 type deck struct {
 	powerAttack int
@@ -100,7 +107,7 @@ func flattenDeck(d map[CardType]Card) deck {
 	}
 }
 
-func firstHalf(s state) CardType {
+func (l *smartLogic) firstHalf(s state) CardType {
 	minHealHP := 15
 	// +1 average score if we prioritize healing when we are going to receive no damage
 	if s.c.typ == CreepCheepy && s.c.isFull {
@@ -120,7 +127,7 @@ func firstHalf(s state) CardType {
 	return CardAttack
 }
 
-func smartCanSurviveDragon(s state) bool {
+func (l *smartLogic) canSurviveDragon(s state) bool {
 	dragonHP := float64(s.c.hp)
 	myHP := float64(s.hp)
 
@@ -168,8 +175,8 @@ func smartCanSurviveDragon(s state) bool {
 	return myHP > 0 && dragonHP < 0
 }
 
-func smartFightDragon(s state) CardType {
-	if s.c.isFull && !smartCanSurviveDragon(s) {
+func (l *smartLogic) fightDragon(s state) CardType {
+	if s.c.isFull && !l.canSurviveDragon(s) {
 		if s.can(CardHeal) {
 			return CardHeal
 		}
@@ -213,27 +220,27 @@ func smartFightDragon(s state) CardType {
 	return CardAttack
 }
 
-func canSurviveDragonWithoutPowerAttack(s state) bool {
+func (l *smartLogic) canSurviveDragonWithoutPowerAttack(s state) bool {
 	s.d.powerAttack--
-	return smartCanSurviveDragon(s)
+	return l.canSurviveDragon(s)
 }
 
-func canSurviveDragonWithoutStun(s state) bool {
+func (l *smartLogic) canSurviveDragonWithoutStun(s state) bool {
 	s.d.stun--
-	return smartCanSurviveDragon(s)
+	return l.canSurviveDragon(s)
 }
 
-func canSurviveDragonWithoutParry(s state) bool {
+func (l *smartLogic) canSurviveDragonWithoutParry(s state) bool {
 	s.d.parry--
-	return smartCanSurviveDragon(s)
+	return l.canSurviveDragon(s)
 }
 
-func canSurviveDragonWithoutFirebolt(s state) bool {
+func (l *smartLogic) canSurviveDragonWithoutFirebolt(s state) bool {
 	s.mp -= FireboltMP
-	return smartCanSurviveDragon(s)
+	return l.canSurviveDragon(s)
 }
 
-func secondHalf(s state) CardType {
+func (l *smartLogic) secondHalf(s state) CardType {
 	// +0.6 average score
 	if s.round == 9 && s.c.typ == CreepCheepy && s.mp >= s.d.heal*HealMP+RestMP && s.c.isFull {
 		return CardRest
@@ -267,7 +274,7 @@ func secondHalf(s state) CardType {
 
 	// WTF
 	// +2 average score, -2% dragon kills
-	if s.can(CardPowerAttack) && canSurviveDragonWithoutPowerAttack(s) {
+	if s.can(CardPowerAttack) && l.canSurviveDragonWithoutPowerAttack(s) {
 		return CardPowerAttack
 	}
 
@@ -277,7 +284,11 @@ func secondHalf(s state) CardType {
 	return CardAttack
 }
 
-func Smart(gs State) CardType {
+func NewSmart() func(State) CardType {
+	return (&smartLogic{r: rand.New(rand.NewSource(time.Now().UnixNano()))}).ChooseCard
+}
+
+func (l *smartLogic) ChooseCard(gs State) CardType {
 	s := state{
 		hp:    gs.Avatar.HP,
 		mp:    gs.Avatar.MP,
@@ -294,14 +305,14 @@ func Smart(gs State) CardType {
 
 	// some heuristics for the first half of the game
 	if gs.Round <= 5 {
-		return firstHalf(s)
+		return l.firstHalf(s)
 	}
 
 	// a fully-simulated dragon fight
 	if s.c.typ == CreepDragon {
-		return smartFightDragon(s)
+		return l.fightDragon(s)
 	}
 
 	// the semi-simulated second half
-	return secondHalf(s)
+	return l.secondHalf(s)
 }

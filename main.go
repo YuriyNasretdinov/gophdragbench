@@ -77,7 +77,7 @@ func tryDisableDebugMessages() {
 // computeAvgScore computes average for N rounds of best-of-three
 // (it does three launches and takes the best score of three launches
 //  and then returns the average of those scores)
-func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg, meanerr, winratio, dragonDefeatRatio float64, worstActions, bestActions []simstep.Action, minScore, maxScore int) {
+func computeAvgScore(chooseCardFn func(game.State) game.CardType, chooseCardMaker func() func(game.State) game.CardType) (avg, meanerr, winratio, dragonDefeatRatio float64, worstActions, bestActions []simstep.Action, minScore, maxScore int) {
 	sum := 0.0
 	wins := 0
 	dragonDefeats := 0
@@ -93,6 +93,9 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg, meanerr,
 	var wg sync.WaitGroup
 	for i := 0; i < *cores; i++ {
 		go func() {
+			if chooseCardMaker != nil {
+				chooseCardFn = chooseCardMaker()
+			}
 			resultsCh <- computePartialSums(chooseCardFn, iterPerCore)
 			wg.Done()
 		}()
@@ -210,8 +213,9 @@ func main() {
 
 	if *human {
 		strats = []strat{
-			{"human", interactivePlay},
+			{"human", interactivePlay, nil},
 		}
+		*cores = 1
 	}
 
 	for _, s := range strats {
@@ -224,7 +228,7 @@ func main() {
 			fmt.Printf("%s", strings.Repeat(" ", maxLen-len(s.name)))
 		}
 		start := time.Now()
-		avg, meanerr, winratio, dragonRatio, worst, best, min, max := computeAvgScore(s.cb)
+		avg, meanerr, winratio, dragonRatio, worst, best, min, max := computeAvgScore(s.cb, s.maker)
 		avgTime := time.Since(start) / time.Duration(*iterations)
 		avgStr := fmt.Sprintf("%.2f", avg)
 		fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime*time.Duration(*cores))
