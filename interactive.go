@@ -15,17 +15,13 @@ var stdinReader = bufio.NewReader(os.Stdin)
 
 func interactivePlay(s game.State) game.CardType {
 	fmt.Printf("\n")
-	fmt.Printf("Avatar:              HP: %d    MP: %d          ", s.Avatar.HP, s.Avatar.MP)
-	for _, c := range s.Deck {
-		if c.Count > 0 {
-			fmt.Printf("%s: %d   ", c.Type, c.Count)
-		}
-	}
-	fmt.Printf("\n")
+	fmt.Printf("--- Round %d ---\n\n", s.Round)
+	fmt.Printf("Avatar:                         HP: %d    MP: %d\n", s.Avatar.HP, s.Avatar.MP)
+	creepDmg := fmt.Sprintf("(%d-%d dmg)", s.Creep.Damage.Low(), s.Creep.Damage.High())
 
-	creepDmg := fmt.Sprintf("%d-%d dmg", s.Creep.Damage.Low(), s.Creep.Damage.High())
+	fmt.Printf("Creep: %10s %10s    HP: %d     %s\nNext:  %10s\n", s.Creep.Type, creepDmg, s.Creep.HP, s.Creep.Traits, s.NextCreep)
 
-	fmt.Printf("Creep: %10s (%s)    HP: %d     Next: %s\n", s.Creep.Type, creepDmg, s.Creep.HP, s.NextCreep)
+	fmt.Printf("Deck:\n")
 
 	var options []int
 	for _, c := range s.Deck {
@@ -39,22 +35,40 @@ func interactivePlay(s game.State) game.CardType {
 	}
 	sort.Ints(options)
 
+	optMap := make(map[string]game.CardType)
+
 	for _, o := range options {
 		c := s.Deck[game.CardType(o)]
+		optMap[c.Type.String()] = c.Type
+
 		dmg := ""
-		if c.IsOffensive {
+		if c.IsOffensive && c.Type != game.CardStun {
 			if c.Power.Low() == c.Power.High() {
-				dmg = fmt.Sprintf(", %d dmg", c.Power.Low())
+				dmg = fmt.Sprintf("%d dmg", c.Power.Low())
 			} else {
-				dmg = fmt.Sprintf(", %d-%d dmg", c.Power.Low(), c.Power.High())
+				dmg = fmt.Sprintf("%d-%d dmg", c.Power.Low(), c.Power.High())
 			}
 
+		} else if c.Effect != "" {
+			if c.Power.Low() == c.Power.High() {
+				dmg = fmt.Sprintf("%d %s", c.Power.Low(), c.Effect)
+			} else {
+				dmg = fmt.Sprintf("%d-%d %s", c.Power.Low(), c.Power.High(), c.Effect)
+			}
 		}
 
-		fmt.Printf("[%d] %s (%d mp%s)   ", o, c.Type, c.MP, dmg)
-	}
+		left := ""
+		if c.Count == -1 {
+			left = "∞"
+		} else {
+			left = fmt.Sprintf("%d", c.Count)
+		}
 
-	var cardChosen int
+		fmt.Printf("   [%d] %14s: %s   %d mp   %s\n", o, c.Type, left, c.MP, dmg)
+	}
+	fmt.Printf("\n")
+
+	var card game.CardType
 
 	for {
 		fmt.Printf("\nChoose card: ")
@@ -62,13 +76,20 @@ func interactivePlay(s game.State) game.CardType {
 		if err != nil {
 			panic(err)
 		}
-		cardChosen, err = strconv.Atoi(strings.TrimSpace(opt))
-		if err != nil {
-			fmt.Printf("Invalid input: %v\n", err)
-			continue
+
+		var ok bool
+		card, ok = optMap[strings.TrimSpace(opt)]
+		if !ok {
+			optNum, err := strconv.Atoi(strings.TrimSpace(opt))
+			if err != nil {
+				fmt.Printf("Unrecognized card: %s\n", opt)
+				continue
+			}
+
+			card = game.CardType(optNum)
 		}
 
-		if !s.Can(game.CardType(cardChosen)) {
+		if !s.Can(card) {
 			fmt.Printf("Cannot use this card\n")
 			continue
 		}
@@ -76,5 +97,7 @@ func interactivePlay(s game.State) game.CardType {
 		break
 	}
 
-	return game.CardType(cardChosen)
+	fmt.Printf("Using %s\n", card)
+
+	return card
 }

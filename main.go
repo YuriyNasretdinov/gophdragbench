@@ -53,6 +53,10 @@ func runsim(chooseCardFn func(game.State) game.CardType) (log []simstep.Action, 
 		}
 	}
 
+	if *human {
+		fmt.Printf("\n-----\nGame stats: score: %d, victory: %v, dragon defeated: %v\n\n\n", score, victory, dragonDefeated)
+	}
+
 	if victory {
 		return actions, score, dragonDefeated
 	}
