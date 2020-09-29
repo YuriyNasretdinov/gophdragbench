@@ -177,21 +177,37 @@ func smartFightDragon(s state) CardType {
 		return CardRetreat
 	}
 
+	// +0.5 average score if healed right after stun
+	if !s.c.isStunned && s.can(CardStun) {
+		return CardStun
+	}
+
 	// +2 average score, +3% dragon win rate
 	if s.hp <= 25 && s.can(CardHeal) {
 		return CardHeal
 	}
 
 	if !s.c.isStunned && s.can(CardParry) {
+		// if it is the last move and we still have heals, use them
+		if s.c.hp <= 5 && s.can(CardHeal) {
+			return CardHeal
+		}
+
 		return CardParry
 	}
 
-	if !s.c.isStunned && s.can(CardStun) {
-		return CardStun
+	if s.can(CardPowerAttack) {
+		// if it is the last move and we still have heals, use them
+		if s.c.hp <= 4 && s.can(CardHeal) {
+			return CardHeal
+		}
+
+		return CardPowerAttack
 	}
 
-	if s.can(CardPowerAttack) {
-		return CardPowerAttack
+	// +0.2 average score
+	if s.c.hp <= 2 && s.can(CardHeal) {
+		return CardHeal
 	}
 
 	return CardAttack
