@@ -19,7 +19,12 @@ func interactivePlay(s game.State) game.CardType {
 	fmt.Printf("Avatar:                         HP: %d    MP: %d\n", s.Avatar.HP, s.Avatar.MP)
 	creepDmg := fmt.Sprintf("(%d-%d dmg)", s.Creep.Damage.Low(), s.Creep.Damage.High())
 
-	fmt.Printf("Creep: %10s %10s    HP: %d     %s\nNext:  %10s\n", s.Creep.Type, creepDmg, s.Creep.HP, s.Creep.Traits, s.NextCreep)
+	stunText := ""
+	if s.Creep.IsStunned() {
+		stunText = " (stunned)"
+	}
+
+	fmt.Printf("Creep: %10s %10s%s    HP: %d     %s\nNext:  %10s\n", s.Creep.Type, creepDmg, stunText, s.Creep.HP, s.Creep.Traits, s.NextCreep)
 
 	fmt.Printf("Deck:\n")
 
@@ -64,6 +69,23 @@ func interactivePlay(s game.State) game.CardType {
 			left = fmt.Sprintf("%d", c.Count)
 		}
 
+		available := true
+		if c.Type == game.CardStun && s.Creep.IsStunned() {
+			available = false
+		}
+
+		if c.Type == game.CardParry && s.Creep.Traits.Has(game.TraitRanged) {
+			available = false
+		}
+
+		if s.Creep.Traits.Has(game.TraitMagicImmunity) && (c.Type == game.CardMagicArrow || c.Type == game.CardFirebolt) {
+			available = false
+		}
+
+		if !available {
+			dmg = "nothing"
+		}
+
 		fmt.Printf("   [%d] %14s: %s   %d mp   %s\n", o, c.Type, left, c.MP, dmg)
 	}
 	fmt.Printf("\n")
@@ -71,16 +93,23 @@ func interactivePlay(s game.State) game.CardType {
 	var card game.CardType
 
 	for {
-		fmt.Printf("\nChoose card: ")
+		fmt.Printf("\nChoose card [Attack]: ")
 		opt, err := stdinReader.ReadString('\n')
 		if err != nil {
 			panic(err)
 		}
 
 		var ok bool
-		card, ok = optMap[strings.TrimSpace(opt)]
+
+		opt = strings.TrimSpace(opt)
+		if opt == "" {
+			card = 0
+			break
+		}
+
+		card, ok = optMap[opt]
 		if !ok {
-			optNum, err := strconv.Atoi(strings.TrimSpace(opt))
+			optNum, err := strconv.Atoi(opt)
 			if err != nil {
 				fmt.Printf("Unrecognized card: %s\n", opt)
 				continue

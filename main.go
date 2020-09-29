@@ -7,7 +7,10 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -22,19 +25,18 @@ var (
 	debug       = flag.Bool("debug", false, "enable debug messages")
 	samples     = flag.Bool("samples", false, "show best and worst matches")
 	startSeed   = flag.Int64("rand-seed", time.Now().UnixNano(), "initial random seed")
+	cores       = flag.Int("cores", runtime.NumCPU()/2, "number of cores to use")
 	human       = flag.Bool("human", false, "play the game interactively instead of running a programmatic strategy")
 
 	currentSeed int64
 )
 
 func runsim(chooseCardFn func(game.State) game.CardType) (log []simstep.Action, score int, dragonDefeated bool) {
-	currentSeed += rand.Int63()
-
 	conf := &sim.Config{
 		AvatarHP: 40,
 		AvatarMP: 20,
 		Rounds:   10,
-		Seed:     currentSeed,
+		Seed:     atomic.AddInt64(&currentSeed, rand.Int63()),
 	}
 
 	victory := false
@@ -84,37 +86,39 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg, meanerr,
 
 	bests := make([]int, 0, *iterations)
 
-	for i := 0; i < *iterations; i++ {
-		best := 0
+	iterPerCore := *iterations / *cores
+	totalIterations := iterPerCore * (*cores)
+	resultsCh := make(chan computeSumResult, *cores)
 
-		for j := 0; j < 3; j++ {
-			actions, res, dragonDefeated := runsim(chooseCardFn)
-			if res > best {
-				best = res
-			}
-			if res > 0 {
-				wins++
-			}
-			if dragonDefeated {
-				dragonDefeats++
-			}
-			if res > maxScore {
-				maxScore = res
-				bestActions = actions
-			}
-			if res > 0 && res < minScore {
-				minScore = res
-				worstActions = actions
-			}
-			total++
+	var wg sync.WaitGroup
+	for i := 0; i < *cores; i++ {
+		go func() {
+			resultsCh <- computePartialSums(chooseCardFn, iterPerCore)
+			wg.Done()
+		}()
+		wg.Add(1)
+	}
+	wg.Wait()
+	close(resultsCh)
+
+	for r := range resultsCh {
+		wins += r.wins
+		dragonDefeats += r.dragonDefeats
+		if r.maxScore > maxScore {
+			maxScore = r.maxScore
+			bestActions = r.bestActions
 		}
-
-		bests = append(bests, best)
-		sum += float64(best)
+		if r.minScore < minScore {
+			minScore = r.minScore
+			worstActions = r.worstActions
+		}
+		sum += r.sum
+		bests = append(bests, r.bests...)
+		total += r.total
 	}
 
 	sumsquares := 0.0
-	avg = sum / float64(*iterations)
+	avg = sum / float64(totalIterations)
 	for _, best := range bests {
 		sumsquares += (float64(best) - avg) * (float64(best) - avg)
 	}
@@ -123,9 +127,52 @@ func computeAvgScore(chooseCardFn func(game.State) game.CardType) (avg, meanerr,
 	// and standard deviation is calculated as
 	//    sqrt( (x - avg(x))^2 / (N-1) )
 	// if N is large enough we can just say that meanerr = sqrt( (x - avg(x))^2 ) / N
-	meanerr = math.Sqrt(sumsquares) / float64(*iterations)
+	meanerr = math.Sqrt(sumsquares) / float64(totalIterations)
 
 	return avg, meanerr, float64(wins) / float64(total), float64(dragonDefeats) / float64(total), worstActions, bestActions, minScore, maxScore
+}
+
+type computeSumResult struct {
+	wins, dragonDefeats       int
+	maxScore, minScore, total int
+	worstActions, bestActions []simstep.Action
+	sum                       float64
+	bests                     []int
+}
+
+func computePartialSums(chooseCardFn func(game.State) game.CardType, iter int) (r computeSumResult) {
+	r.bests = make([]int, 0, iter)
+
+	for i := 0; i < iter; i++ {
+		best := 0
+
+		for j := 0; j < 3; j++ {
+			actions, res, dragonDefeated := runsim(chooseCardFn)
+			if res > best {
+				best = res
+			}
+			if res > 0 {
+				r.wins++
+			}
+			if dragonDefeated {
+				r.dragonDefeats++
+			}
+			if res > r.maxScore {
+				r.maxScore = res
+				r.bestActions = actions
+			}
+			if res > 0 && res < r.minScore {
+				r.minScore = res
+				r.worstActions = actions
+			}
+			r.total++
+		}
+
+		r.bests = append(r.bests, best)
+		r.sum += float64(best)
+	}
+
+	return r
 }
 
 func printAction(act simstep.Action) {
@@ -180,7 +227,7 @@ func main() {
 		avg, meanerr, winratio, dragonRatio, worst, best, min, max := computeAvgScore(s.cb)
 		avgTime := time.Since(start) / time.Duration(*iterations)
 		avgStr := fmt.Sprintf("%.2f", avg)
-		fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime)
+		fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime*time.Duration(*cores))
 
 		if *samples {
 			fmt.Printf("Worst game (%d points):\n", min)
