@@ -22,6 +22,7 @@ var (
 	debug       = flag.Bool("debug", false, "enable debug messages")
 	samples     = flag.Bool("samples", false, "show best and worst matches")
 	startSeed   = flag.Int64("rand-seed", time.Now().UnixNano(), "initial random seed")
+	human       = flag.Bool("human", false, "play the game interactively instead of running a programmatic strategy")
 
 	currentSeed int64
 )
@@ -145,7 +146,7 @@ func main() {
 	rand.Seed(*startSeed)
 	currentSeed = *startSeed
 
-	if !*debug {
+	if !*debug && !*human {
 		tryDisableDebugMessages()
 	}
 
@@ -153,6 +154,12 @@ func main() {
 	for _, s := range strats {
 		if len(s.name) > maxLen {
 			maxLen = len(s.name)
+		}
+	}
+
+	if *human {
+		strats = []strat{
+			{"human", interactivePlay},
 		}
 	}
 
