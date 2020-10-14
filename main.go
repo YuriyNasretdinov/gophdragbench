@@ -40,7 +40,7 @@ func runsim(chooseCardFn func(game.State) game.CardType) (log []simstep.Action, 
 	conf := &sim.Config{
 		AvatarHP: 40,
 		AvatarMP: 20,
-		Rounds:   10,
+		Rounds:   12,
 		Seed:     atomic.AddInt64(&currentSeed, rand.Int63()),
 	}
 
