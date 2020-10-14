@@ -1,6 +1,6 @@
 package yourock
 
-import . "github.com/quasilyte/gophers-and-dragons/game"
+import . "github.com/golangconf/gophers-and-dragons/game"
 
 const DragonAttack = 5
 

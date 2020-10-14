@@ -1,6 +1,6 @@
 package alik
 
-import "github.com/quasilyte/gophers-and-dragons/game"
+import "github.com/golangconf/gophers-and-dragons/game"
 
 func WiningTactic(s game.State) game.CardType {
 

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/quasilyte/gophers-and-dragons/game"
+	"github.com/golangconf/gophers-and-dragons/game"
 )
 
 var stdinReader = bufio.NewReader(os.Stdin)

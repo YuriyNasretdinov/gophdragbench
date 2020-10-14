@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	. "github.com/quasilyte/gophers-and-dragons/game"
+	. "github.com/golangconf/gophers-and-dragons/game"
 )
 
 type smartLogic struct {
@@ -36,7 +36,7 @@ type creepProbabilitiesPercent struct {
 }
 
 // predict the probability of a creep based on a round,
-// from https://github.com/quasilyte/gophers-and-dragons/blob/master/wasm/sim/sim.go#L151
+// from https://github.com/golangconf/gophers-and-dragons/blob/master/wasm/sim/sim.go#L151
 func creepProbabilities(round int) creepProbabilitiesPercent {
 	switch {
 	case round == 1:

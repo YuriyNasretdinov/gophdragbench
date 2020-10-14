@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/YuriyNasretdinov/gophdragbench/strats/alik"
-	"github.com/YuriyNasretdinov/gophdragbench/strats/atercattus"
-	"github.com/YuriyNasretdinov/gophdragbench/strats/yourock"
-	"github.com/quasilyte/gophers-and-dragons/game"
+	"github.com/golangconf/gophdragbench/strats/alik"
+	"github.com/golangconf/gophdragbench/strats/atercattus"
+	"github.com/golangconf/gophdragbench/strats/yourock"
+	"github.com/golangconf/gophers-and-dragons/game"
 )
 
 type strat struct {
