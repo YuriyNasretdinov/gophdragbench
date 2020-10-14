@@ -65,6 +65,7 @@ func newYaegiStrat(name, code string) strat {
 			"CreepClaws":  reflect.ValueOf(game.CreepClaws),
 			"CreepMummy":  reflect.ValueOf(game.CreepMummy),
 			"CreepDragon": reflect.ValueOf(game.CreepDragon),
+			"CreepKubus":  reflect.ValueOf(game.CreepKubus),
 
 			"TraitCoward":        reflect.ValueOf(game.TraitCoward),
 			"TraitMagicImmunity": reflect.ValueOf(game.TraitMagicImmunity),
