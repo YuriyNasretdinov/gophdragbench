@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/golangconf/gophers-and-dragons/game"
+	"github.com/golangconf/gophers-and-dragons/wasm/gamedata"
 	"github.com/golangconf/gophers-and-dragons/wasm/sim"
 	"github.com/golangconf/gophers-and-dragons/wasm/simstep"
 )
@@ -189,6 +190,15 @@ func printAction(act simstep.Action) {
 	}
 }
 
+func initGame() {
+	for typ, stats := range gamedata.Creeps {
+		game.Creeps[typ] = stats
+	}
+	for typ, stats := range gamedata.Cards {
+		game.Cards[typ] = stats
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -199,6 +209,8 @@ func main() {
 
 	rand.Seed(*startSeed)
 	currentSeed = *startSeed
+
+	initGame()
 
 	if !*debug && !*human {
 		tryDisableDebugMessages()
