@@ -1,3 +1,4 @@
 github.com/golangconf/gophers-and-dragons v0.0.0-20201014055201-39d07bd01fcf h1:pvGaApupg9IgzyTNV+7SVRLGS/Q/cUdLwD18RN+N52Y=
 github.com/golangconf/gophers-and-dragons v0.0.0-20201014055201-39d07bd01fcf/go.mod h1:9Wdw6mIIw5N7YWZVaam0pUq5LbLCP8rTfhH37n7ADqc=
+github.com/traefik/yaegi v0.9.1 h1:guHw/ssSWBkZFrSFHdMh96glsF6DnvtR8GdlQqdH2uU=
 github.com/traefik/yaegi v0.9.1/go.mod h1:FAYnRlZyuVlEkvnkHq3bvJ1lW5be6XuwgLdkYgYG6Lk=

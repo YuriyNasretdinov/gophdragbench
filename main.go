@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -28,6 +30,8 @@ var (
 	startSeed   = flag.Int64("rand-seed", time.Now().UnixNano(), "initial random seed")
 	cores       = flag.Int("cores", runtime.NumCPU()/2, "number of cores to use")
 	human       = flag.Bool("human", false, "play the game interactively instead of running a programmatic strategy")
+	stratsDir   = flag.String("strats-dir", "", "directory to run strats from")
+	outputJSON  = flag.Bool("output-json", false, "whether to output results in JSON format")
 
 	currentSeed int64
 )
@@ -212,10 +216,6 @@ func main() {
 
 	initGame()
 
-	if !*debug && !*human {
-		tryDisableDebugMessages()
-	}
-
 	maxLen := 0
 	for _, s := range strats {
 		if len(s.name) > maxLen {
@@ -223,38 +223,84 @@ func main() {
 		}
 	}
 
-	if *human {
+	switch {
+	case *human:
 		strats = []strat{
-			{"human", interactivePlay, nil},
+			{name: "human", cb: interactivePlay},
 		}
 		*cores = 1
+	case len(*stratsDir) != 0:
+		strats = loadYaegiStrats(*stratsDir)
+	default:
+		// Default mode.
+		panic("default mode is disabled in this fork")
 	}
+
+	if !*debug && !*human {
+		tryDisableDebugMessages()
+	}
+
+	type stratResult struct {
+		Name            string
+		Err             string
+		Avg             float64
+		MeanErr         float64
+		WinRatio        float64
+		DragonKillRatio float64
+	}
+	var results []stratResult
 
 	for _, s := range strats {
 		if filter != nil && !filter.MatchString(s.name) {
 			continue
 		}
 
-		fmt.Printf("Avg score for strat %q: ", s.name)
-		if len(s.name) < maxLen {
-			fmt.Printf("%s", strings.Repeat(" ", maxLen-len(s.name)))
+		if s.err != nil {
+			results = append(results, stratResult{Name: s.name, Err: s.err.Error()})
+			continue
 		}
+
 		start := time.Now()
 		avg, meanerr, winratio, dragonRatio, worst, best, min, max := computeAvgScore(s.cb, s.maker)
 		avgTime := time.Since(start) / time.Duration(*iterations)
 		avgStr := fmt.Sprintf("%.2f", avg)
-		fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime*time.Duration(*cores))
 
-		if *samples {
-			fmt.Printf("Worst game (%d points):\n", min)
-			for _, a := range worst {
-				printAction(a)
+		if *outputJSON {
+			results = append(results, stratResult{
+				Name:            s.name,
+				Avg:             avg,
+				MeanErr:         meanerr,
+				WinRatio:        winratio,
+				DragonKillRatio: dragonRatio,
+			})
+		} else {
+			fmt.Printf("Avg score for strat %q: ", s.name)
+			if len(s.name) < maxLen {
+				fmt.Printf("%s", strings.Repeat(" ", maxLen-len(s.name)))
 			}
 
-			fmt.Printf("\nBest game (%d points):\n", max)
-			for _, a := range best {
-				printAction(a)
+			fmt.Printf("%6s ± %.2f, wins: %2d%%, dragon kills: %2d%%, time per game: %s\n", avgStr, meanerr, int(winratio*100), int(dragonRatio*100), avgTime*time.Duration(*cores))
+
+			if *samples {
+				fmt.Printf("Worst game (%d points):\n", min)
+				for _, a := range worst {
+					printAction(a)
+				}
+
+				fmt.Printf("\nBest game (%d points):\n", max)
+				for _, a := range best {
+					printAction(a)
+				}
 			}
 		}
+
+	}
+
+	if *outputJSON {
+		out, err := json.Marshal(results)
+		if err != nil {
+			log.Panicf("marshal results: %v")
+		}
+		fmt.Println(string(out))
 	}
 }

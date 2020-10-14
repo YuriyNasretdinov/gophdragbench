@@ -1,9 +1,6 @@
 package main
 
 import (
-	"github.com/golangconf/gophdragbench/strats/alik"
-	"github.com/golangconf/gophdragbench/strats/atercattus"
-	"github.com/golangconf/gophdragbench/strats/yourock"
 	"github.com/golangconf/gophers-and-dragons/game"
 )
 
@@ -18,13 +15,18 @@ type strat struct {
 	// e.g. for `-cores=4` it will be called 4 times in total.
 	// The returned function won't be called concurrently.
 	maker func() func(game.State) game.CardType
+
+	// if non-nil, represents strat load or execution error.
+	err error
 }
 
-var strats = []strat{
-	{"yourock/hero", yourock.Hero, nil},
-	{"yourock/smart", nil, yourock.NewSmart},
-	{"yourock/live-coward", yourock.Live, nil},
-	{"yourock/live2", yourock.Live2, nil},
-	{"alik/WiningTactic", alik.WiningTactic, nil},
-	{"atercattus/First", atercattus.First, nil},
-}
+var strats = []strat{}
+
+// var strats = []strat{
+// 	{name: "yourock/hero", cb: yourock.Hero},
+// 	{name: "yourock/smart", cb: nil, maker: yourock.NewSmart},
+// 	{name: "yourock/live-coward", cb: yourock.Live},
+// 	{name: "yourock/live2", cb: yourock.Live2},
+// 	{name: "alik/WiningTactic", cb: alik.ChooseCard},
+// 	{name: "atercattus/First", cb: atercattus.First},
+// }
